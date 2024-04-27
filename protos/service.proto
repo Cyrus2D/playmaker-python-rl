@@ -757,6 +757,13 @@ message HeliosPenalty {}
 
 message HeliosCommunicaion {}
 
+message BipedalDash {
+  float power_l = 1;
+  float dir_l = 2;
+  float power_r = 3;
+  float dir_r = 4;
+}
+
 message PlayerAction {
   oneof action {
       Dash dash = 1;
@@ -823,6 +830,7 @@ message PlayerAction {
       HeliosSetPlay helios_set_play = 62;
       HeliosPenalty helios_penalty = 63;
       HeliosCommunicaion helios_communication = 64;
+      BipedalDash bipedal_dash = 65;
   }
 }
 
