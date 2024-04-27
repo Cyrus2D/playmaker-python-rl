@@ -1,3 +1,4 @@
+from rl.rl_model import RL_Model
 import service_pb2 as pb2
 from src.IDecisionMaker import IDecisionMaker
 from src.DM_PlayOn import PlayOnDecisionMaker
@@ -11,43 +12,63 @@ class DecisionMaker(IDecisionMaker):
         self.playOnDecisionMaker = PlayOnDecisionMaker()
         self.setPlayDecisionMaker = SetPlayDecisionMaker()
         self.rl_model = RL_Model()
-        self.last_ball_pos = Vector2D(-100, -100)
+        self.last_state = None
+        self.last_action = None
+        self.last_reward = None
     
     def make_decision(self, agent: IAgent):
         player = agent.wm.self
-        
         player_pos = Vector2D(player.position.x, player.position.y)
         player_body = player.body_direction
         player_vel = Vector2D(player.velocity.x, player.velocity.y)
         
         ball_pos = Vector2D(agent.wm.ball.position.x, agent.wm.ball.position.y)
         
-        if self.last_ball_pos.dist(ball_pos) > 0.01:
-            self.rl_model.update_memory(0, True)
-        else:
-            self.rl_model.update_memory(self.evaluate(agent.wm), False)
-        self.last_ball_pos = ball_pos
-        
-        state = [
+        current_state = [
             player_pos.x() / 52.5,
-            player_pos.y() / 34,
-            player_body / 180,
-            player_vel.x() / 3,
-            player_vel.y() / 3,
+            player_pos.y() / 34.,
+            player_body / 180.,
+            player_vel.x() / 3.,
+            player_vel.y() / 3.,
             ball_pos.x() / 52.5,
-            ball_pos.y() / 34
+            ball_pos.y() / 34.
         ]
         
-        rl_action = self.rl_model.get_action(state)
+        got_to_ball = False
+        if ball_pos.dist(player_pos) < 1:
+            reward = 1
+            self.rl_model.update_memory(
+                self.last_state,
+                self.last_action,
+                reward, # Erm!
+                current_state,
+            )
+            got_to_ball = True
+        elif self.last_state is not None:
+            reward = self.evaluate(ball_pos, player_pos)
+            self.rl_model.update_memory(
+                self.last_state,
+                self.last_action,
+                reward,
+                current_state,
+            )        
+        
+        self.rl_model.learn()
+        
+        rl_action = self.rl_model.policy(current_state)
         pl, dl, pr, dr = rl_action[0] * 100, rl_action[1] * 180, rl_action[2] * 100, rl_action[3] * 180
         
         agent.add_action(pb2.PlayerAction(
-            dash=pb2.Dash(
-                power_l = pl,
-                dir_l = dl,
-                power_r = pr,
-                dir_r = dr
+            bipedal_dash=pb2.BipedalDash(
+                power_l = pl*100,
+                dir_l = dl*360 - 180,
+                power_r = pr*100,
+                dir_r = dr*360 - 180
             )
         ))
         
-        
+        self.last_action = rl_action
+        self.last_state = current_state
+        self.last_reward = reward
+        if got_to_ball:
+            self.last_state = None
