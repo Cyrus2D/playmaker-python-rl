@@ -1,4 +1,5 @@
 from abc import ABC
+from rl.trainer import RL_Trainer
 from src.IAgent import IAgent
 import service_pb2 as pb2
 
@@ -11,30 +12,10 @@ class SampleTrainerAgent(IAgent, ABC):
         self.playerTypes: dict[pb2.PlayerType] = {}
         self.wm: pb2.WorldModel = None
         self.first_substitution = True
+        self.rl_trainer = RL_Trainer()
     
     def get_actions(self, wm:pb2.WorldModel) -> pb2.TrainerActions:
-        self.wm = wm
-        
-        actions = pb2.TrainerActions()
-        print(f'cycle: {self.wm.cycle}')
-        print(f'cycle: {self.wm.ball.position.x}, {self.wm.ball.position.y}')
-        
-        if self.wm.cycle % 100 == 0:
-            actions.actions.append(
-                pb2.TrainerAction(
-                    do_move_ball=pb2.DoMoveBall(
-                        position=pb2.Vector2D(
-                            x=0,
-                            y=0
-                        ),
-                        velocity=pb2.Vector2D(
-                            x=0,
-                            y=0
-                        ),
-                    )
-                )
-            )
-        return actions
+        return self.rl_trainer.make_decision(wm)
     
     def set_params(self, params):
         if isinstance(params, pb2.ServerParam):
