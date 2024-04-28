@@ -1,3 +1,4 @@
+import random
 import keras
 from keras import layers
 import tensorflow as tf
@@ -21,7 +22,7 @@ def get_actor():
     inputs = layers.Input(shape=(num_states,))
     out = layers.Dense(256, activation="relu")(inputs)
     out = layers.Dense(256, activation="relu")(out)
-    outputs = layers.Dense(1, activation="tanh", kernel_initializer=last_init)(out)
+    outputs = layers.Dense(num_actions, activation="tanh", kernel_initializer=last_init)(out)
 
     # Our upper bound is 2.0 for Pendulum.
     outputs = outputs * upper_bound
@@ -67,13 +68,13 @@ class RL_Model:
         self.critic_lr = 0.002
         self.actor_lr = 0.001
 
-        self.critic_optimizer = keras.optimizers.Adam(critic_lr)
-        self.actor_optimizer = keras.optimizers.Adam(actor_lr)
+        self.critic_optimizer = keras.optimizers.Adam(self.critic_lr)
+        self.actor_optimizer = keras.optimizers.Adam(self.actor_lr)
 
         self.gamma = 0.99
         self.tau = 0.005
     
-    @tf.function
+    #@tf.function
     def update(
         self,
         state_batch,
@@ -116,4 +117,22 @@ class RL_Model:
         return [np.squeeze(legal_action)]
     
     def update_memory(self, state, action, reward, next_state):
-        pass
+        self.memory.append((state, action, reward, next_state))
+    
+    def learn(self):
+        # sample self.batch_size memories from memory
+        if len(self.memory) < self.batch_size:
+            return
+        samples = random.sample(self.memory, self.batch_size)
+        state_batch = np.array([_[0] for _ in samples])
+        action_batch = np.array([_[1] for _ in samples])
+        reward_batch = np.array([_[2] for _ in samples])
+        next_state_batch = np.array([_[3] for _ in samples])
+        
+        state_batch = state_batch.reshape((self.batch_size, num_states))
+        next_state_batch = next_state_batch.reshape((self.batch_size, num_states))
+        action_batch = action_batch.reshape((self.batch_size, num_actions))
+        reward_batch = reward_batch.reshape((self.batch_size, 1))
+        
+        self.update(state_batch, action_batch, reward_batch, next_state_batch)
+        

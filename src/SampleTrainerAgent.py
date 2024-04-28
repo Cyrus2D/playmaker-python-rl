@@ -1,5 +1,5 @@
 from abc import ABC
-from rl.trainer import RL_Trainer
+from src.rl.trainer import RL_Trainer
 from src.IAgent import IAgent
 import service_pb2 as pb2
 
@@ -15,7 +15,11 @@ class SampleTrainerAgent(IAgent, ABC):
         self.rl_trainer = RL_Trainer()
     
     def get_actions(self, wm:pb2.WorldModel) -> pb2.TrainerActions:
-        return self.rl_trainer.make_decision(wm)
+        self.wm = wm
+        self.rl_trainer.make_decision(self)
+        actions = pb2.TrainerActions()
+        actions.actions.extend(self.actions)
+        return actions
     
     def set_params(self, params):
         if isinstance(params, pb2.ServerParam):

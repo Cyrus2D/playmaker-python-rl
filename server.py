@@ -57,6 +57,7 @@ class Game(pb2_grpc.GameServicer):
     def GetInitMessage(self, request, context):
         with self.lock:
             self.number_of_connections += 1
+        print(f'{self.number_of_connections} connections')
         return pb2.InitMessageFromServer()
     
     def SendByeCommand(self, request, context):
