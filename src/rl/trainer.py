@@ -36,6 +36,10 @@ class RL_Trainer:
         player_pos = Vector2D(player.position.x, player.position.y)
         ball_pos = Vector2D(wm.ball.position.x, wm.ball.position.y)
         
+        agent.add_action(pb2.TrainerAction(
+            do_recover=pb2.DoRecover()
+        ))
+        
         if player_pos.dist(ball_pos) < 1:
             print('Player reached the ball', wm.cycle)
             self.reset(agent)
